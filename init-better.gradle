@@ -1,0 +1,48 @@
+import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
+import org.gradle.tooling.provider.model.ToolingModelBuilder
+import org.gradle.util.GradleVersion
+
+import javax.inject.Inject
+
+apply plugin: JetGradlePlugin
+
+class JetGradlePlugin implements Plugin<Gradle> {
+    private final ToolingModelBuilderRegistry toolingModelBuilderRegistry
+
+    @Inject
+    JetGradlePlugin(ToolingModelBuilderRegistry toolingModelBuilderRegistry) {
+        this.toolingModelBuilderRegistry = toolingModelBuilderRegistry
+    }
+
+    void apply(Gradle gradle) {
+        def extraModelBuilderInstance =
+            GradleVersion.current() >= GradleVersion.version("4.4")
+            ? ExtraModelBuilder.class.classLoader.loadClass(ExtraModelBuilder.class.typeName + "\$ForGradle44").newInstance()
+            : new ExtraModelBuilder();
+
+        toolingModelBuilderRegistry.register(extraModelBuilderInstance)
+        // TODO: Remove this
+        println("registered $extraModelBuilderInstance on ${gradle.rootBuild ? "root" : "included"}")
+        if (GradleVersion.current() >= GradleVersion.version("3.1") && 
+            GradleVersion.current() < GradleVersion.version("4.0")) {
+            // TODO: add this model builder to included builds, using some version of the old code
+        }
+    }
+}
+
+// TODO: Remove this, this was just for testing
+class CustomModel implements Serializable {
+    String path
+}
+
+class ExtraModelBuilder implements ToolingModelBuilder {
+    boolean canBuild(String modelName) {
+        return modelName == "CustomModel"
+    }
+
+    Object buildAll(String modelName, Project project) {
+        return new CustomModel(path: project.path)
+    }
+}
+
+class ExtraModelBuilder$ForGradle44 extends ExtraModelBuilder {}

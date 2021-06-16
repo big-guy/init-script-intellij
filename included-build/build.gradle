@@ -1,0 +1,5 @@
+import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
+
+afterEvaluate {
+    println("included build sees " + services.get(ToolingModelBuilderRegistry).getBuilder("CustomModel").delegate)
+}
